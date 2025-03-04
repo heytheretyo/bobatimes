@@ -174,8 +174,10 @@ const Index = () => {
     );
 
     const updatedChallenges = challenges.map((challenge) => {
-      if (challenge.completed || rewardedChallenges[challenge.id])
+      if (challenge.completed || rewardedChallenges[challenge.id]) {
+        challenge.completed = true;
         return challenge;
+      }
 
       let achieved = false;
 
