@@ -1,5 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
-import { Challenge } from "@/lib/challenges";
+import { Button } from "@/components/ui/button";
+import type { Challenge } from "@/lib/challenges";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface ChallengeListProps {
   challenges: Challenge[];
@@ -16,9 +21,13 @@ export default function ChallengeList({
   totalClicks,
   passiveBobaRate,
 }: ChallengeListProps) {
+  const [showAll, setShowAll] = useState(false);
+
+  const visibleChallenges = showAll ? challenges : challenges.slice(0, 3);
+
   return (
     <div className="space-y-3">
-      {challenges.map((challenge) => (
+      {visibleChallenges.map((challenge) => (
         <div
           key={challenge.id}
           className={`border rounded-lg p-3 transition-all ${
@@ -76,6 +85,24 @@ export default function ChallengeList({
           )}
         </div>
       ))}
+
+      {challenges.length > 3 && (
+        <Button
+          variant="outline"
+          className="w-full mt-4"
+          onClick={() => setShowAll(!showAll)}
+        >
+          {showAll ? (
+            <>
+              Show Less <ChevronUp className="ml-2 h-4 w-4" />
+            </>
+          ) : (
+            <>
+              Show More <ChevronDown className="ml-2 h-4 w-4" />
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 }
