@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import BobaTimer from "@/components/BobaTimer";
 import BobaClicker from "@/components/BobaClicker";
 import BobaShop from "@/components/BobaShop";
@@ -13,71 +13,77 @@ import Instructions from "@/components/Instructions";
 import Footer from "@/components/Footer";
 import useDebouncedSave from "@/lib/use-debounce-save";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const loadFromLocalStorage = (key: string, defaultValue: any) => {
+  const stored = localStorage.getItem(key);
+  return stored ? JSON.parse(stored) : defaultValue;
+};
+
 const Index = () => {
-  const [bobaCount, setBobaCount] = useState<number>(() => {
-    return (
-      JSON.parse(localStorage.getItem("bobaProgress") || "{}").bobaCount || 0
-    );
-  });
-  const [totalBoba, setTotalBoba] = useState<number>(() => {
-    return (
-      JSON.parse(localStorage.getItem("bobaProgress") || "{}").totalBoba || 0
-    );
-  });
-  const [totalClicks, setTotalClicks] = useState<number>(() => {
-    return (
-      JSON.parse(localStorage.getItem("bobaProgress") || "{}").totalClicks || 0
-    );
-  });
-  const [completedSessions, setCompletedSessions] = useState<number>(() => {
-    return (
-      JSON.parse(localStorage.getItem("bobaProgress") || "{}")
-        .completedSessions || 0
-    );
-  });
-  const [challengesCompleted, setCompletedChallenges] = useState<number>(() => {
-    return (
-      JSON.parse(localStorage.getItem("bobaProgress") || "{}")
-        .challengesCompleted || 0
-    );
-  });
-  const [bobaGoal, setBobaGoal] = useState<number>(() => {
-    return (
-      JSON.parse(localStorage.getItem("bobaProgress") || "{}").bobaGoal || 1000
-    );
-  });
-
-  const [bobaPerClick, setBobaPerClick] = useState<number>(() => {
-    return (
-      JSON.parse(localStorage.getItem("bobaProgress") || "{}").bobaPerClick || 1
-    );
-  });
-
-  const [passiveBobaRate, setPassiveBobaRate] = useState<number>(() => {
-    return (
-      JSON.parse(localStorage.getItem("bobaProgress") || "{}")
-        .passiveBobaRate || 0
-    );
-  });
-
+  // State initialization using the helper function
+  const [bobaCount, setBobaCount] = useState<number>(
+    () => loadFromLocalStorage("bobaProgress", {}).bobaCount || 0
+  );
+  const [totalBoba, setTotalBoba] = useState<number>(
+    () => loadFromLocalStorage("bobaProgress", {}).totalBoba || 0
+  );
+  const [totalClicks, setTotalClicks] = useState<number>(
+    () => loadFromLocalStorage("bobaProgress", {}).totalClicks || 0
+  );
+  const [completedSessions, setCompletedSessions] = useState<number>(
+    () => loadFromLocalStorage("bobaProgress", {}).completedSessions || 0
+  );
+  const [challengesCompleted, setCompletedChallenges] = useState<number>(
+    () => loadFromLocalStorage("bobaProgress", {}).challengesCompleted || 0
+  );
+  const [bobaGoal, setBobaGoal] = useState<number>(
+    () => loadFromLocalStorage("bobaProgress", {}).bobaGoal || 1000
+  );
+  const [bobaPerClick, setBobaPerClick] = useState<number>(
+    () => loadFromLocalStorage("bobaProgress", {}).bobaPerClick || 1
+  );
+  const [passiveBobaRate, setPassiveBobaRate] = useState<number>(
+    () => loadFromLocalStorage("bobaProgress", {}).passiveBobaRate || 0
+  );
   const [challenges, setChallenges] = useState<Challenge[]>(initialChallenges);
-
   const [upgrades, setUpgrades] = useState<{
     tapioca: number;
     staff: number;
     marketing: number;
-  }>(() => {
-    return (
-      JSON.parse(localStorage.getItem("bobaProgress") || "{}").upgrades || {
-        tapioca: 1,
-        staff: 0,
-        marketing: 0,
-      }
-    );
-  });
-
+  }>(
+    loadFromLocalStorage("bobaProgress", {}).upgrades || {
+      tapioca: 1,
+      staff: 0,
+      marketing: 0,
+    }
+  );
   const { toast } = useToast();
   const passiveTimerRef = useRef<number | null>(null);
+
+  const marketingMultiplier = useMemo(
+    () => 1 + upgrades.marketing * 0.1,
+    [upgrades.marketing]
+  );
+  const newBobaPerClick = useMemo(
+    () => 1 * upgrades.tapioca * marketingMultiplier,
+    [upgrades.tapioca, marketingMultiplier]
+  );
+  const passiveRate = useMemo(
+    () => upgrades.staff * 0.5 * marketingMultiplier,
+    [upgrades.staff, marketingMultiplier]
+  );
+
+  useDebouncedSave(
+    bobaCount,
+    totalBoba,
+    totalClicks,
+    completedSessions,
+    challengesCompleted,
+    bobaGoal,
+    upgrades,
+    bobaPerClick,
+    passiveBobaRate
+  );
 
   useEffect(() => {
     const savedData = localStorage.getItem("bobaGameProgress");
@@ -95,18 +101,6 @@ const Index = () => {
       setPassiveBobaRate(parsedData.passiveBobaRate || 0);
     }
   }, []);
-
-  useDebouncedSave(
-    bobaCount,
-    totalBoba,
-    totalClicks,
-    completedSessions,
-    challengesCompleted,
-    bobaGoal,
-    upgrades,
-    bobaPerClick,
-    passiveBobaRate
-  );
 
   // useEffect(() => {
   //   const saveInterval = setInterval(() => {
@@ -224,12 +218,6 @@ const Index = () => {
   }, [totalBoba, completedSessions, totalClicks, passiveBobaRate, challenges]);
 
   useEffect(() => {
-    const marketingMultiplier = 1 + upgrades.marketing * 0.1;
-    const newBobaPerClick = 1 * upgrades.tapioca * marketingMultiplier;
-
-    // Passive rate = staff level * 0.5 * marketing effect
-    const passiveRate = upgrades.staff * 0.5 * marketingMultiplier;
-
     setBobaPerClick(newBobaPerClick);
     setPassiveBobaRate(passiveRate);
 
@@ -248,12 +236,14 @@ const Index = () => {
     localStorage.setItem("bobaProgress", JSON.stringify(progressData));
   }, [
     bobaCount,
-    bobaGoal,
-    challengesCompleted,
-    completedSessions,
     totalBoba,
     totalClicks,
+    completedSessions,
+    challengesCompleted,
+    bobaGoal,
     upgrades,
+    newBobaPerClick,
+    passiveRate,
   ]);
 
   const handleBobaMade = (amount: number) => {
