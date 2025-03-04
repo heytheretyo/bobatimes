@@ -1,0 +1,171 @@
+import React, { useState, useEffect, useRef } from "react";
+import BobaTimer from "@/components/BobaTimer";
+import BobaClicker from "@/components/BobaClicker";
+import BobaShop from "@/components/BobaShop";
+import StatisticsPanel from "@/components/StatisticsPanel";
+import { useToast } from "@/components/ui/use-toast";
+import { Separator } from "@/components/ui/separator";
+
+const Index = () => {
+  const [bobaCount, setBobaCount] = useState(0);
+  const [bobaPerClick, setBobaPerClick] = useState(1);
+  const [passiveBobaRate, setPassiveBobaRate] = useState(0);
+  const [completedSessions, setCompletedSessions] = useState(0);
+  const [totalBoba, setTotalBoba] = useState(0);
+  const [upgrades, setUpgrades] = useState({
+    tapioca: 1,
+    staff: 0,
+    marketing: 0,
+  });
+  const { toast } = useToast();
+  const passiveTimerRef = useRef<number | null>(null);
+
+  // Initialize passive income timer
+  useEffect(() => {
+    passiveTimerRef.current = window.setInterval(() => {
+      if (passiveBobaRate > 0) {
+        setBobaCount((prev) => {
+          const newAmount = prev + passiveBobaRate / 10; // divide by 10 because we update 10 times per second
+          return newAmount;
+        });
+        setTotalBoba((prev) => prev + passiveBobaRate / 10);
+      }
+    }, 100); // Update 10 times per second for smoother animation
+
+    return () => {
+      if (passiveTimerRef.current) {
+        clearInterval(passiveTimerRef.current);
+      }
+    };
+  }, [passiveBobaRate]);
+
+  // Update derived stats when upgrades change
+  useEffect(() => {
+    // Boba per click = base (1) * tapioca level * marketing effect
+    const marketingMultiplier = 1 + upgrades.marketing * 0.1;
+    const newBobaPerClick = 1 * upgrades.tapioca * marketingMultiplier;
+
+    // Passive rate = staff level * 0.5 * marketing effect
+    const passiveRate = upgrades.staff * 0.5 * marketingMultiplier;
+
+    setBobaPerClick(newBobaPerClick);
+    setPassiveBobaRate(passiveRate);
+  }, [upgrades]);
+
+  const handleBobaMade = (amount: number) => {
+    setBobaCount((prev) => prev + amount);
+    setTotalBoba((prev) => prev + amount);
+  };
+
+  const handleTimerComplete = (mode: "focus" | "break") => {
+    if (mode === "focus") {
+      // Reward player for completing a focus session
+      const reward = 5 * (1 + completedSessions * 0.1); // Increases slightly with more completed sessions
+      setBobaCount((prev) => prev + reward);
+      setTotalBoba((prev) => prev + reward);
+      setCompletedSessions((prev) => prev + 1);
+
+      toast({
+        title: "Focus reward!",
+        description: `You earned ${reward.toFixed(
+          1
+        )} boba for completing a focus session.`,
+        duration: 3000,
+      });
+    }
+  };
+
+  const handlePurchase = (cost: number, upgradeId: string) => {
+    setBobaCount((prev) => prev - cost);
+
+    setUpgrades((prev) => ({
+      ...prev,
+      [upgradeId]: prev[upgradeId as keyof typeof prev] + 1,
+    }));
+
+    toast({
+      title: "Upgrade purchased!",
+      description: `Your boba business is growing!`,
+      duration: 2000,
+    });
+  };
+
+  return (
+    <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-b from-boba-milk to-secondary">
+      <div className="container max-w-4xl mx-auto px-4 py-8">
+        <div className="text-center mb-6 animate-fade-in">
+          <h1 className="text-3xl font-bold tracking-tight text-boba-brown mb-2">
+            BobaTimes
+          </h1>
+          <p className="text-muted-foreground">
+            Stay productive while growing your boba tea empire!
+          </p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <BobaTimer onTimerComplete={handleTimerComplete} />
+
+          <div className="flex flex-col gap-6">
+            <StatisticsPanel
+              totalBoba={totalBoba}
+              completedSessions={completedSessions}
+              bobaPerClick={bobaPerClick}
+              passiveBobaRate={passiveBobaRate}
+            />
+            <BobaClicker
+              bobaPerClick={bobaPerClick}
+              onBobaMade={handleBobaMade}
+            />
+          </div>
+        </div>
+
+        <Separator className="my-8 bg-boba-brown/10" />
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="md:col-span-1">
+            <BobaShop
+              currency={bobaCount}
+              onPurchase={handlePurchase}
+              bobaPerClick={bobaPerClick}
+              passiveBobaRate={passiveBobaRate}
+            />
+          </div>
+
+          <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 md:col-span-1 animate-fade-in">
+            <h2 className="text-xl font-medium mb-4 text-boba-brown">
+              How to Play
+            </h2>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-start gap-2">
+                <span className="bg-secondary rounded-full p-1 mt-0.5">1</span>
+                <span>Use the Pomodoro timer for focused work sessions</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="bg-secondary rounded-full p-1 mt-0.5 ">2</div>
+                <span>Tap the boba cup to brew tea during breaks</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="bg-secondary rounded-full p-1 mt-0.5">3</span>
+                <span>Complete focus sessions to earn bonus boba</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="bg-secondary rounded-full p-1 mt-0.5">4</span>
+                <span>Spend your boba on upgrades in the shop</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="bg-secondary rounded-full p-1 mt-0.5">5</span>
+                <span>Hire staff to brew boba even while you focus</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <footer className="mt-12 text-center text-xs text-muted-foreground animate-fade-in">
+          <p>BobaTimes — Productivity meets idle fun</p>
+        </footer>
+      </div>
+    </div>
+  );
+};
+
+export default Index;
