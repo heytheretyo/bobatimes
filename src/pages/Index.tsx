@@ -5,12 +5,15 @@ import BobaShop from "@/components/BobaShop";
 import StatisticsPanel from "@/components/StatisticsPanel";
 import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { Target } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 const Index = () => {
   const [bobaCount, setBobaCount] = useState(0);
   const [bobaPerClick, setBobaPerClick] = useState(1);
   const [passiveBobaRate, setPassiveBobaRate] = useState(0);
   const [completedSessions, setCompletedSessions] = useState(0);
+  const [bobaGoal, setBobaGoal] = useState(1000);
   const [totalBoba, setTotalBoba] = useState(0);
   const [upgrades, setUpgrades] = useState({
     tapioca: 1,
@@ -38,6 +41,18 @@ const Index = () => {
       }
     };
   }, [passiveBobaRate]);
+
+  useEffect(() => {
+    if (totalBoba >= bobaGoal) {
+      toast({
+        title: "Goal Achieved!",
+        description: `Congratulations! You've reached your goal of ${bobaGoal} boba!`,
+        duration: 5000,
+      });
+      // Set a new goal that's 5x the current goal
+      setBobaGoal((prev) => prev * 5);
+    }
+  }, [totalBoba, bobaGoal, toast]);
 
   // Update derived stats when upgrades change
   useEffect(() => {
@@ -128,6 +143,28 @@ const Index = () => {
             bobaPerClick={bobaPerClick}
             passiveBobaRate={passiveBobaRate}
           />
+        </div>
+
+        <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 animate-fade-in mb-6">
+          <h2 className="text-xl font-medium mb-4 text-boba-brown flex items-center gap-2">
+            <Target size={18} className="text-boba-brown" />
+            Boba Goal
+          </h2>
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-1">
+              <div className="text-sm">
+                Progress: {((totalBoba / bobaGoal) * 100).toFixed(1)}%
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {totalBoba.toFixed(0)} / {bobaGoal.toFixed(0)}
+              </span>
+            </div>
+            <Progress value={(totalBoba / bobaGoal) * 100} className="h-3" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Reach {bobaGoal.toFixed(0)} boba to set a new milestone and unlock a
+            surprise reward!
+          </p>
         </div>
 
         <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 md:col-span-1 animate-fade-in">
