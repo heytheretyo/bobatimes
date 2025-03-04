@@ -1,9 +1,13 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@font-face {
+  font-family: "Molle";
+  src: url("/fonts/Molle-Italic.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
 
 @layer base {
   :root {
@@ -102,7 +106,7 @@
   .glass-panel {
     @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-lg;
   }
-  
+
   .timer-display {
     @apply text-6xl font-light tracking-tighter;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -117,17 +121,17 @@
   .shimmer-effect {
     @apply bg-gradient-to-r from-transparent via-white/20 to-transparent bg-[length:200%_100%] animate-shimmer;
   }
-  
+
   .btn-boba {
-    @apply px-6 py-3 rounded-full font-medium transition-all duration-300 
+    @apply px-6 py-3 rounded-full font-medium transition-all duration-300
     ease-in-out hover:shadow-md active:scale-95 focus:outline-none focus:ring-2
     focus:ring-opacity-50 tracking-wide;
   }
-  
+
   .btn-boba-primary {
     @apply btn-boba bg-boba-brown text-white hover:bg-boba-brown/90 focus:ring-boba-brown;
   }
-  
+
   .btn-boba-secondary {
     @apply btn-boba bg-secondary text-boba-brown hover:bg-secondary/90 focus:ring-secondary;
   }

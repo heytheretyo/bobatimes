@@ -160,8 +160,8 @@ const Index = () => {
     <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-b from-boba-milk to-secondary">
       <div className="container max-w-4xl mx-auto px-4 py-8">
         <div className="text-center mb-6 animate-fade-in">
-          <h1 className="text-3xl font-bold tracking-tight text-boba-brown mb-2">
-            BobaTimes
+          <h1 className="text-4xl font-molle  tracking-tight  text-boba-brown mb-2">
+            bobatimes
           </h1>
           <p className="text-muted-foreground">
             Stay productive while growing your boba tea empire!
