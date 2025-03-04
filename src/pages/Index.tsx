@@ -5,8 +5,10 @@ import BobaShop from "@/components/BobaShop";
 import StatisticsPanel from "@/components/StatisticsPanel";
 import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { Target } from "lucide-react";
+import { ArrowBigRightDashIcon, Target } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import ChallengeList from "@/components/ChallengeList";
+import { initialChallenges } from "@/lib/challenges";
 
 const Index = () => {
   const [bobaCount, setBobaCount] = useState(0);
@@ -72,17 +74,17 @@ const Index = () => {
     setTotalBoba((prev) => prev + amount);
   };
 
-  const handleTimerComplete = (mode: "focus" | "break") => {
+  const handleTimerComplete = (mode: "focus" | "break", reward: number) => {
     if (mode === "focus") {
       // Reward player for completing a focus session
-      const reward = 5 * (1 + completedSessions * 0.1); // Increases slightly with more completed sessions
-      setBobaCount((prev) => prev + reward);
-      setTotalBoba((prev) => prev + reward);
+      const totalReward = reward * (1 + completedSessions * 0.1); // Increases slightly with more completed sessions
+      setBobaCount((prev) => prev + totalReward);
+      setTotalBoba((prev) => prev + totalReward);
       setCompletedSessions((prev) => prev + 1);
 
       toast({
         title: "Focus reward!",
-        description: `You earned ${reward.toFixed(
+        description: `You earned ${totalReward.toFixed(
           1
         )} boba for completing a focus session.`,
         duration: 3000,
@@ -165,6 +167,14 @@ const Index = () => {
             Reach {bobaGoal.toFixed(0)} boba to set a new milestone and unlock a
             surprise reward!
           </p>
+        </div>
+
+        <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 animate-fade-in mb-6">
+          <h2 className="text-xl font-medium mb-4 text-boba-brown flex items-center gap-2">
+            <ArrowBigRightDashIcon size={18} className="text-boba-brown" />
+            Achivements
+          </h2>
+          <ChallengeList challenges={initialChallenges} />
         </div>
 
         <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 md:col-span-1 animate-fade-in">

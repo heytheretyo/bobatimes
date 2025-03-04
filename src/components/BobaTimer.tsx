@@ -33,7 +33,7 @@ import {
 type TimerMode = "focus" | "break";
 
 interface BobaTimerProps {
-  onTimerComplete: (mode: TimerMode) => void;
+  onTimerComplete: (mode: TimerMode, reward: number) => void;
 }
 
 const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
@@ -50,6 +50,7 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
   const initialTimeRef = useRef(25 * 60);
   const completionSoundRef = useRef<HTMLAudioElement | null>(null);
   const rainSoundRef = useRef<HTMLAudioElement | null>(null);
+  const sessionStartTimeRef = useRef<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -70,6 +71,9 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
 
   useEffect(() => {
     if (isRunning) {
+      if (sessionStartTimeRef.current === null) {
+        sessionStartTimeRef.current = Date.now();
+      }
       timerRef.current = window.setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -96,12 +100,31 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
     setProgress(progressValue);
   }, [timeLeft]);
 
+  const calculateReward = (sessionDurationMinutes: number): number => {
+    // Base reward: 5 boba per minute
+    const baseReward = 5 * sessionDurationMinutes;
+
+    // Bonus for longer sessions: 1 extra boba per minute for sessions over 15 minutes
+    const bonusReward =
+      sessionDurationMinutes > 15 ? sessionDurationMinutes - 15 : 0;
+
+    // Total reward
+    return baseReward + bonusReward;
+  };
+
   const handleTimerComplete = () => {
     if (soundEnabled && completionSoundRef.current) {
       completionSoundRef.current
         .play()
         .catch((err) => console.error("Error playing sound:", err));
     }
+
+    const sessionEndTime = Date.now();
+    const sessionDurationMinutes = sessionStartTimeRef.current
+      ? Math.round((sessionEndTime - sessionStartTimeRef.current) / 60000)
+      : 0;
+
+    const reward = calculateReward(sessionDurationMinutes);
 
     if (mode === "focus") {
       setCompletedSessions((prev) => prev + 1);
@@ -110,7 +133,7 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
       setTimeLeft(breakDuration * 60);
       toast({
         title: "Focus session complete!",
-        description: "Time for a short break.",
+        description: `You've earned ${reward} boba! Time for a short break.`,
         duration: 3000,
       });
     } else {
@@ -124,10 +147,14 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
       });
     }
 
-    onTimerComplete(mode);
+    onTimerComplete(mode, reward);
+    sessionStartTimeRef.current = null;
   };
 
   const toggleTimer = () => {
+    if (!isRunning && sessionStartTimeRef.current === null) {
+      sessionStartTimeRef.current = Date.now();
+    }
     setIsRunning((prev) => !prev);
   };
 
@@ -135,6 +162,7 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
     clearInterval(timerRef.current!);
     setTimeLeft(initialTimeRef.current);
     setIsRunning(false);
+    sessionStartTimeRef.current = null;
   };
 
   const toggleSound = () => {
