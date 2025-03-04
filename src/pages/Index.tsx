@@ -8,14 +8,17 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowBigRightDashIcon, Target } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import ChallengeList from "@/components/ChallengeList";
-import { initialChallenges } from "@/lib/challenges";
+import { Challenge, initialChallenges } from "@/lib/challenges";
 
 const Index = () => {
   const [bobaCount, setBobaCount] = useState(0);
   const [bobaPerClick, setBobaPerClick] = useState(1);
   const [passiveBobaRate, setPassiveBobaRate] = useState(0);
+  const [totalClicks, setTotalClicks] = useState(0);
+  const [challengesCompleted, setCompletedChallenges] = useState(0);
   const [completedSessions, setCompletedSessions] = useState(0);
   const [bobaGoal, setBobaGoal] = useState(1000);
+  const [challenges, setChallenges] = useState<Challenge[]>(initialChallenges);
   const [totalBoba, setTotalBoba] = useState(0);
   const [upgrades, setUpgrades] = useState({
     tapioca: 1,
@@ -56,6 +59,49 @@ const Index = () => {
     }
   }, [totalBoba, bobaGoal, toast]);
 
+  useEffect(() => {
+    const updatedChallenges = challenges.map((challenge) => {
+      if (challenge.completed) return challenge;
+
+      let achieved = false;
+
+      switch (challenge.type) {
+        case "boba":
+          achieved = totalBoba >= challenge.target;
+          break;
+        case "sessions":
+          achieved = completedSessions >= challenge.target;
+          break;
+        case "clicks":
+          achieved = totalClicks >= challenge.target;
+          break;
+        case "bps":
+          achieved = passiveBobaRate >= challenge.target;
+          break;
+      }
+
+      if (achieved && !challenge.completed) {
+        // Award the boba for completing challenge
+        setBobaCount((prev) => prev + challenge.reward);
+        setTotalBoba((prev) => prev + challenge.reward);
+
+        toast({
+          title: `Challenge Completed: ${challenge.name}`,
+          description: `Reward: ${challenge.reward} boba!`,
+          duration: 5000,
+        });
+
+        setCompletedChallenges((prev) => prev + 1);
+
+        return { ...challenge, completed: true };
+      }
+
+      return challenge;
+    });
+
+    setChallenges(updatedChallenges);
+  }, [totalBoba, completedSessions, totalClicks, passiveBobaRate]);
+
   // Update derived stats when upgrades change
   useEffect(() => {
     // Boba per click = base (1) * tapioca level * marketing effect
@@ -72,6 +118,7 @@ const Index = () => {
   const handleBobaMade = (amount: number) => {
     setBobaCount((prev) => prev + amount);
     setTotalBoba((prev) => prev + amount);
+    setTotalClicks((prev) => prev + 1);
   };
 
   const handleTimerComplete = (mode: "focus" | "break", reward: number) => {
@@ -174,7 +221,13 @@ const Index = () => {
             <ArrowBigRightDashIcon size={18} className="text-boba-brown" />
             Achivements
           </h2>
-          <ChallengeList challenges={initialChallenges} />
+          <ChallengeList
+            challenges={challenges}
+            totalBoba={totalBoba}
+            completedSessions={completedSessions}
+            totalClicks={0}
+            passiveBobaRate={passiveBobaRate}
+          />
         </div>
 
         <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 md:col-span-1 animate-fade-in">
