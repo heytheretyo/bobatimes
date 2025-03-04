@@ -11,24 +11,131 @@ import ChallengeList from "@/components/ChallengeList";
 import { Challenge, initialChallenges } from "@/lib/challenges";
 import Instructions from "@/components/Instructions";
 import Footer from "@/components/Footer";
+import useDebouncedSave from "@/lib/use-debounce-save";
 
 const Index = () => {
-  const [bobaCount, setBobaCount] = useState(0);
-  const [bobaPerClick, setBobaPerClick] = useState(1);
-  const [passiveBobaRate, setPassiveBobaRate] = useState(0);
-  const [totalClicks, setTotalClicks] = useState(0);
-  const [challengesCompleted, setCompletedChallenges] = useState(0);
-  const [completedSessions, setCompletedSessions] = useState(0);
-  const [bobaGoal, setBobaGoal] = useState(1000);
-  const [challenges, setChallenges] = useState<Challenge[]>(initialChallenges);
-  const [totalBoba, setTotalBoba] = useState(0);
-  const [upgrades, setUpgrades] = useState({
-    tapioca: 1,
-    staff: 0,
-    marketing: 0,
+  const [bobaCount, setBobaCount] = useState<number>(() => {
+    return (
+      JSON.parse(localStorage.getItem("bobaProgress") || "{}").bobaCount || 0
+    );
   });
+  const [totalBoba, setTotalBoba] = useState<number>(() => {
+    return (
+      JSON.parse(localStorage.getItem("bobaProgress") || "{}").totalBoba || 0
+    );
+  });
+  const [totalClicks, setTotalClicks] = useState<number>(() => {
+    return (
+      JSON.parse(localStorage.getItem("bobaProgress") || "{}").totalClicks || 0
+    );
+  });
+  const [completedSessions, setCompletedSessions] = useState<number>(() => {
+    return (
+      JSON.parse(localStorage.getItem("bobaProgress") || "{}")
+        .completedSessions || 0
+    );
+  });
+  const [challengesCompleted, setCompletedChallenges] = useState<number>(() => {
+    return (
+      JSON.parse(localStorage.getItem("bobaProgress") || "{}")
+        .challengesCompleted || 0
+    );
+  });
+  const [bobaGoal, setBobaGoal] = useState<number>(() => {
+    return (
+      JSON.parse(localStorage.getItem("bobaProgress") || "{}").bobaGoal || 1000
+    );
+  });
+
+  const [bobaPerClick, setBobaPerClick] = useState<number>(() => {
+    return (
+      JSON.parse(localStorage.getItem("bobaProgress") || "{}").bobaPerClick || 1
+    );
+  });
+
+  const [passiveBobaRate, setPassiveBobaRate] = useState<number>(() => {
+    return (
+      JSON.parse(localStorage.getItem("bobaProgress") || "{}")
+        .passiveBobaRate || 0
+    );
+  });
+
+  const [challenges, setChallenges] = useState<Challenge[]>(initialChallenges);
+
+  const [upgrades, setUpgrades] = useState<{
+    tapioca: number;
+    staff: number;
+    marketing: number;
+  }>(() => {
+    return (
+      JSON.parse(localStorage.getItem("bobaProgress") || "{}").upgrades || {
+        tapioca: 1,
+        staff: 0,
+        marketing: 0,
+      }
+    );
+  });
+
   const { toast } = useToast();
   const passiveTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const savedData = localStorage.getItem("bobaGameProgress");
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      setBobaCount(parsedData.bobaCount || 0);
+      setTotalBoba(parsedData.totalBoba || 0);
+      setTotalClicks(parsedData.totalClicks || 0);
+      setCompletedSessions(parsedData.completedSessions || 0);
+      setChallenges(parsedData.challenges || initialChallenges);
+      setUpgrades(
+        parsedData.upgrades || { tapioca: 1, staff: 0, marketing: 0 }
+      );
+      setBobaPerClick(parsedData.bobaPerClick || 1);
+      setPassiveBobaRate(parsedData.passiveBobaRate || 0);
+    }
+  }, []);
+
+  useDebouncedSave(
+    bobaCount,
+    totalBoba,
+    totalClicks,
+    completedSessions,
+    challengesCompleted,
+    bobaGoal,
+    upgrades,
+    bobaPerClick,
+    passiveBobaRate
+  );
+
+  // useEffect(() => {
+  //   const saveInterval = setInterval(() => {
+  //     const progressData = {
+  //       bobaCount,
+  //       totalBoba,
+  //       totalClicks,
+  //       completedSessions,
+  //       challengesCompleted,
+  //       bobaGoal,
+  //       upgrades,
+  //       bobaPerClick,
+  //       passiveBobaRate,
+  //     };
+  //     localStorage.setItem("bobaProgress", JSON.stringify(progressData));
+  //   }, 5000); // Save every 5 seconds
+
+  //   return () => clearInterval(saveInterval); // Cleanup on unmount
+  // }, [
+  //   bobaCount,
+  //   totalBoba,
+  //   totalClicks,
+  //   completedSessions,
+  //   challengesCompleted,
+  //   bobaGoal,
+  //   upgrades,
+  //   bobaPerClick,
+  //   passiveBobaRate,
+  // ]);
 
   // Initialize passive income timer
   useEffect(() => {
@@ -102,7 +209,7 @@ const Index = () => {
     });
 
     setChallenges(updatedChallenges);
-  }, [totalBoba, completedSessions, totalClicks, passiveBobaRate]);
+  }, [totalBoba, completedSessions, totalClicks, passiveBobaRate, challenges]);
 
   // Update derived stats when upgrades change
   useEffect(() => {
@@ -115,7 +222,29 @@ const Index = () => {
 
     setBobaPerClick(newBobaPerClick);
     setPassiveBobaRate(passiveRate);
-  }, [upgrades]);
+
+    const progressData = {
+      bobaCount,
+      totalBoba,
+      totalClicks,
+      completedSessions,
+      challengesCompleted,
+      bobaGoal,
+      upgrades,
+      bobaPerClick: newBobaPerClick,
+      passiveBobaRate: passiveRate,
+    };
+
+    localStorage.setItem("bobaProgress", JSON.stringify(progressData));
+  }, [
+    bobaCount,
+    bobaGoal,
+    challengesCompleted,
+    completedSessions,
+    totalBoba,
+    totalClicks,
+    upgrades,
+  ]);
 
   const handleBobaMade = (amount: number) => {
     setBobaCount((prev) => prev + amount);
