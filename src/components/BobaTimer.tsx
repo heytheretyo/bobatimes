@@ -1,13 +1,17 @@
-import React, { useState, useEffect, useRef } from "react";
+"use client";
+
+import type React from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Coffee,
-  Timer,
   Play,
   Pause,
   RotateCcw,
   Volume2,
   VolumeX,
   Check,
+  CloudRain,
+  Settings,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +23,12 @@ import {
 } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
+import { Slider } from "@/components/ui/slider";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type TimerMode = "focus" | "break";
 
@@ -33,17 +43,28 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
   const [progress, setProgress] = useState(100);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [completedSessions, setCompletedSessions] = useState(0);
+  const [rainSoundPlaying, setRainSoundPlaying] = useState(false);
+  const [focusDuration, setFocusDuration] = useState(25);
+  const [breakDuration, setBreakDuration] = useState(5);
   const timerRef = useRef<number | null>(null);
   const initialTimeRef = useRef(25 * 60);
   const completionSoundRef = useRef<HTMLAudioElement | null>(null);
+  const rainSoundRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     completionSoundRef.current = new Audio(
       "https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3"
     );
+    rainSoundRef.current = new Audio(
+      "https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-1253.mp3"
+    );
+    if (rainSoundRef.current) {
+      rainSoundRef.current.loop = true;
+    }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (rainSoundRef.current) rainSoundRef.current.pause();
     };
   }, []);
 
@@ -85,8 +106,8 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
     if (mode === "focus") {
       setCompletedSessions((prev) => prev + 1);
       setMode("break");
-      initialTimeRef.current = 5 * 60; // 5 minute break
-      setTimeLeft(5 * 60);
+      initialTimeRef.current = breakDuration * 60;
+      setTimeLeft(breakDuration * 60);
       toast({
         title: "Focus session complete!",
         description: "Time for a short break.",
@@ -94,8 +115,8 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
       });
     } else {
       setMode("focus");
-      initialTimeRef.current = 25 * 60; // Back to 25 minutes
-      setTimeLeft(25 * 60);
+      initialTimeRef.current = focusDuration * 60;
+      setTimeLeft(focusDuration * 60);
       toast({
         title: "Break time over!",
         description: "Ready for another focus session?",
@@ -120,12 +141,43 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
     setSoundEnabled((prev) => !prev);
   };
 
+  const toggleRainSound = () => {
+    if (rainSoundRef.current) {
+      if (rainSoundPlaying) {
+        rainSoundRef.current.pause();
+      } else {
+        rainSoundRef.current
+          .play()
+          .catch((err) => console.error("Error playing rain sound:", err));
+      }
+      setRainSoundPlaying(!rainSoundPlaying);
+    }
+  };
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs
       .toString()
       .padStart(2, "0")}`;
+  };
+
+  const handleFocusDurationChange = (value: number[]) => {
+    const newDuration = value[0];
+    setFocusDuration(newDuration);
+    if (mode === "focus") {
+      initialTimeRef.current = newDuration * 60;
+      setTimeLeft(newDuration * 60);
+    }
+  };
+
+  const handleBreakDurationChange = (value: number[]) => {
+    const newDuration = value[0];
+    setBreakDuration(newDuration);
+    if (mode === "break") {
+      initialTimeRef.current = newDuration * 60;
+      setTimeLeft(newDuration * 60);
+    }
   };
 
   return (
@@ -169,6 +221,26 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
               </Tooltip>
             </TooltipProvider>
 
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleRainSound}
+                    className={`rounded-full h-8 w-8 ${
+                      rainSoundPlaying ? "bg-boba-brown/10" : ""
+                    }`}
+                  >
+                    <CloudRain size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{rainSoundPlaying ? "Stop" : "Play"} rain sound</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             <div className="bg-secondary/80 text-xs font-medium px-2.5 py-0.5 rounded-full">
               {completedSessions} completed
             </div>
@@ -186,7 +258,7 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
           <Button
             onClick={toggleTimer}
             size="lg"
-            className="btn-boba-primary flex-1  "
+            className="btn-boba-primary flex-1"
           >
             {isRunning ? (
               <Pause size={18} className="mr-2" />
@@ -205,6 +277,49 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
             <RotateCcw size={18} className="mr-2" />
             Reset
           </Button>
+        </div>
+
+        <div className="hidden md:block">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full">
+                <Settings size={16} className="mr-2" />
+                Change Timer Settings
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Focus Duration</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Set the duration for focus sessions (in minutes)
+                  </p>
+                </div>
+                <Slider
+                  value={[focusDuration]}
+                  onValueChange={handleFocusDurationChange}
+                  max={60}
+                  min={1}
+                  step={1}
+                />
+                <div>{focusDuration} minutes</div>
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none">Break Duration</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Set the duration for break sessions (in minutes)
+                  </p>
+                </div>
+                <Slider
+                  value={[breakDuration]}
+                  onValueChange={handleBreakDurationChange}
+                  max={30}
+                  min={1}
+                  step={1}
+                />
+                <div>{breakDuration} minutes</div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </CardContent>
     </Card>
