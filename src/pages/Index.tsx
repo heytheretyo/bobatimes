@@ -169,8 +169,13 @@ const Index = () => {
   }, [totalBoba, bobaGoal, toast]);
 
   useEffect(() => {
+    const rewardedChallenges = JSON.parse(
+      localStorage.getItem("rewardedChallenges") || "{}"
+    );
+
     const updatedChallenges = challenges.map((challenge) => {
-      if (challenge.completed) return challenge;
+      if (challenge.completed || rewardedChallenges[challenge.id])
+        return challenge;
 
       let achieved = false;
 
@@ -189,8 +194,7 @@ const Index = () => {
           break;
       }
 
-      if (achieved && !challenge.completed) {
-        // Award the boba for completing challenge
+      if (achieved) {
         setBobaCount((prev) => prev + challenge.reward);
         setTotalBoba((prev) => prev + challenge.reward);
 
@@ -202,6 +206,12 @@ const Index = () => {
 
         setCompletedChallenges((prev) => prev + 1);
 
+        rewardedChallenges[challenge.id] = true;
+        localStorage.setItem(
+          "rewardedChallenges",
+          JSON.stringify(rewardedChallenges)
+        );
+
         return { ...challenge, completed: true };
       }
 
@@ -211,9 +221,7 @@ const Index = () => {
     setChallenges(updatedChallenges);
   }, [totalBoba, completedSessions, totalClicks, passiveBobaRate, challenges]);
 
-  // Update derived stats when upgrades change
   useEffect(() => {
-    // Boba per click = base (1) * tapioca level * marketing effect
     const marketingMultiplier = 1 + upgrades.marketing * 0.1;
     const newBobaPerClick = 1 * upgrades.tapioca * marketingMultiplier;
 
