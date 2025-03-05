@@ -14,6 +14,9 @@ import Footer from "@/components/Footer";
 import useDebouncedSave from "@/lib/use-debounce-save";
 import { playAchievementSound } from "@/lib/sound";
 import AuthBanner from "@/components/AuthBanner";
+import AuthModal from "@/components/AuthModal";
+import AuthPopup from "@/components/AuthPopup";
+import BuyMeCoffee from "@/components/BuyMeCoffee";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const loadFromLocalStorage = (key: string, defaultValue: any) => {
@@ -24,8 +27,9 @@ const loadFromLocalStorage = (key: string, defaultValue: any) => {
 const Index = () => {
   const [showAuthPopup, setShowAuthPopup] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  //TODO: unneccesary state do later
   const [authModalMode, setAuthModalMode] = useState<"signin" | "signup">(
-    "signin"
+    "signup"
   );
 
   const [bobaCount, setBobaCount] = useState<number>(
@@ -306,9 +310,7 @@ const Index = () => {
         onSignIn={() => handleOpenAuthModal("signin")}
         onSignUp={() => handleOpenAuthModal("signup")}
         visible={true}
-        onDismiss={function (): void {
-          throw new Error("Function not implemented.");
-        }}
+        onDismiss={() => {}}
       />
 
       <div className="container max-w-4xl mx-auto px-4 py-8">
@@ -389,6 +391,22 @@ const Index = () => {
 
         <Footer />
       </div>
+
+      <AuthPopup
+        isOpen={showAuthPopup}
+        onOpenChange={setShowAuthPopup}
+        onSignUp={() => handleOpenAuthModal("signup")}
+        onSignIn={() => handleOpenAuthModal("signin")}
+        onDismiss={() => setShowAuthPopup(false)}
+      />
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onOpenChange={setShowAuthModal}
+        initialMode={authModalMode}
+      />
+
+      <BuyMeCoffee />
     </div>
   );
 };

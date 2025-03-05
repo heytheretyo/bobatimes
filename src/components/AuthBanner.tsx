@@ -29,12 +29,12 @@ export default function AuthBanner({
           size="sm"
           variant="secondary"
           className="h-8"
-          onClick={onSignIn}
+          onClick={onSignUp}
         >
           <LogInIcon className="h-3.5 w-3.5 mr-1.5" />
-          Sign In
+          Join us
         </Button>
-        <Button
+        {/* <Button
           size="sm"
           variant="outline"
           className="h-8 bg-transparent border-white/20 text-white hover:bg-white/10"
@@ -42,7 +42,7 @@ export default function AuthBanner({
         >
           <UserPlusIcon className="h-3.5 w-3.5 mr-1.5" />
           Sign Up
-        </Button>
+        </Button> */}
         {/* <Button
           size="sm"
           variant="ghost"

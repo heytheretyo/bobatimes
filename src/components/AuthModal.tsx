@@ -12,8 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/ui/use-toast";
+import useAuth from "@/hooks/use-auth";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -32,7 +32,7 @@ export default function AuthModal({
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { signIn, signUp } = useAuth();
+  const { login, register } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,14 +41,14 @@ export default function AuthModal({
 
     try {
       if (mode === "signin") {
-        await signIn(email, password);
+        await login(email, password);
         toast({
           title: "Welcome back!",
           description: "You've successfully signed in.",
           duration: 3000,
         });
       } else {
-        await signUp(email, password, name);
+        await register(email, password, name);
         toast({
           title: "Account created!",
           description: "Your account has been created successfully.",
