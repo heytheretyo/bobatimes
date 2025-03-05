@@ -17,6 +17,11 @@ const BobaClicker: React.FC<BobaClickerProps> = ({
   const [clickScale, setClickScale] = useState(1);
   const [lastClickTime, setLastClickTime] = useState(0);
 
+  const clickSoundRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    clickSoundRef.current = new Audio("/sound/every-click.wav"); // Make sure the file is in public/
+  }, []);
+
   // Create bubbles when clicked
   const createBubble = (x: number, y: number) => {
     const bubble = document.createElement("div");
@@ -48,6 +53,10 @@ const BobaClicker: React.FC<BobaClickerProps> = ({
     setTimeout(() => setClickScale(1), 150);
 
     onBobaMade(bobaPerClick);
+
+    // Play sound on every click without getting interrupted
+    const clickSound = new Audio("/sound/click.wav");
+    clickSound.play().catch(() => {}); // Ignore autoplay restrictions
 
     // Create multiple bubbles on click
     const rect = e.currentTarget.getBoundingClientRect();
