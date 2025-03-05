@@ -135,4 +135,18 @@
   .btn-boba-secondary {
     @apply btn-boba bg-secondary text-boba-brown hover:bg-secondary/90 focus:ring-secondary;
   }
+
+  @keyframes splash-bubble {
+    0% {
+      transform: scale(0.2) translate(0, 0);
+      opacity: 0.9;
+    }
+    70% {
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(1) translate(var(--tx), var(--ty));
+      opacity: 0;
+    }
+  }
 }

@@ -75,22 +75,70 @@ const BobaClicker: React.FC<BobaClickerProps> = ({
   };
 
   // Create bubbles when clicked
-  const createBubble = (x: number, y: number) => {
+  const createBubble = (x: number, y: number, isSplash = false) => {
     const bubble = document.createElement("div");
-    bubble.className = "bubble";
+
+    // Different class for splash bubbles vs rising bubbles
+    bubble.className = isSplash ? "splash-bubble" : "bubble";
 
     // Randomize bubble properties
-    const size = Math.random() * 10 + 5;
-    const left = x - size / 2;
-    const duration = Math.random() * 2 + 1;
-    const delay = Math.random() * 0.5;
+    const size = isSplash
+      ? Math.random() * 25 + 10 // Larger for splash
+      : Math.random() * 15 + 5; // Normal for rising
+
+    const duration = isSplash
+      ? Math.random() * 0.8 + 0.4 // Faster for splash
+      : Math.random() * 2 + 1; // Normal for rising
+
+    const delay = isSplash
+      ? Math.random() * 0.1 // Almost immediate for splash
+      : Math.random() * 0.5; // Delayed for rising
+
+    // Color variations - more vibrant for splash
+    const hue = Math.floor(Math.random() * 30) + 20; // Brown-ish hues
+    const saturation = isSplash ? "80%" : "70%";
+    const lightness = isSplash ? "65%" : "60%";
+    const opacity = isSplash ? 0.9 : 0.7;
 
     bubble.style.width = `${size}px`;
     bubble.style.height = `${size}px`;
-    bubble.style.left = `${left}px`;
-    bubble.style.bottom = `${y}px`;
+    bubble.style.left = `${x}px`;
+
+    if (isSplash) {
+      bubble.style.top = `${y}px`;
+
+      // Random direction for splash
+      const angle = Math.random() * Math.PI * 2; // 0 to 2π
+      const distance = Math.random() * 80 + 20; // 20-100px
+
+      // Set data attributes for animation
+      bubble.dataset.angle = angle.toString();
+      bubble.dataset.distance = distance.toString();
+    } else {
+      bubble.style.bottom = `${y}px`;
+    }
+
     bubble.style.animationDuration = `${duration}s`;
     bubble.style.animationDelay = `${delay}s`;
+    bubble.style.backgroundColor = `hsla(${hue}, ${saturation}, ${lightness}, ${opacity})`;
+
+    if (isSplash) {
+      // Get the angle and distance from data attributes
+      const angle = Number.parseFloat(bubble.dataset.angle || "0");
+      const distance = Number.parseFloat(bubble.dataset.distance || "0");
+
+      // Calculate the target position
+      const tx = Math.cos(angle) * distance;
+      const ty = Math.sin(angle) * distance;
+
+      // Set CSS variables for the animation
+      bubble.style.setProperty("--tx", `${tx}px`);
+      bubble.style.setProperty("--ty", `${ty}px`);
+    } else {
+      // For regular bubbles, add random rotation
+      const rotation = Math.random() * 360;
+      bubble.style.setProperty("--rotate-deg", `${rotation}deg`);
+    }
 
     if (cupRef.current) {
       cupRef.current.appendChild(bubble);
@@ -133,11 +181,16 @@ const BobaClicker: React.FC<BobaClickerProps> = ({
 
     createFloatingNumber(x, y);
 
-    // Create 3-6 bubbles with each click
-    const bubbleCount = Math.floor(Math.random() * 4) + 3;
+    const rectClick = e.currentTarget.getBoundingClientRect();
+    const width = rectClick.width;
+    const height = rectClick.height;
+
+    // Create regular rising bubbles
+    const bubbleCount = Math.floor(Math.random() * 8) + 7; // 7-14 bubbles
     for (let i = 0; i < bubbleCount; i++) {
-      const offsetX = x + (Math.random() * 40 - 20);
-      createBubble(offsetX, y);
+      const randomX = Math.random() * width;
+      const randomY = height + Math.random() * 20; // Start slightly below the bottom
+      createBubble(randomX, randomY, false);
     }
 
     triggerHapticFeedback();
