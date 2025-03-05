@@ -53,14 +53,9 @@ const useAuth = () => {
   };
   const logout = async () => {
     try {
-      const response = await account.deleteSession("current"); // Deletes the current session
+      await account.deleteSession("current"); // Deletes the current session
 
-      // If the session is deleted successfully, the response will contain status 'ok'
-      if (response === "ok") {
-        return "Logged out successfully";
-      } else {
-        throw new Error("Logout failed: Unexpected response");
-      }
+      setUser(null);
     } catch (error) {
       console.error("Logout error:", error);
       throw error;

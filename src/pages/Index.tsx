@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import BobaTimer from "@/components/BobaTimer";
 import BobaClicker from "@/components/BobaClicker";
@@ -11,12 +12,14 @@ import ChallengeList from "@/components/ChallengeList";
 import { Challenge, initialChallenges } from "@/lib/challenges";
 import Instructions from "@/components/Instructions";
 import Footer from "@/components/Footer";
-import useDebouncedSave from "@/lib/use-debounce-save";
+import useDebouncedSave from "@/hooks/use-debounce-save";
 import { playAchievementSound } from "@/lib/sound";
 import AuthBanner from "@/components/AuthBanner";
 import AuthModal from "@/components/AuthModal";
 import AuthPopup from "@/components/AuthPopup";
 import BuyMeCoffee from "@/components/BuyMeCoffee";
+import { autoSyncProgress, BobaSave, saveProgress } from "@/lib/progress";
+import useAuth from "@/hooks/use-auth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const loadFromLocalStorage = (key: string, defaultValue: any) => {
@@ -25,6 +28,15 @@ const loadFromLocalStorage = (key: string, defaultValue: any) => {
 };
 
 const Index = () => {
+  const { user } = useAuth();
+
+  const userId = user?._id || null;
+
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savedData, setSavedData] = useState<any>(null);
+
   const [showAuthPopup, setShowAuthPopup] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   //TODO: unneccesary state do later
@@ -68,6 +80,7 @@ const Index = () => {
       marketing: 0,
     }
   );
+
   const { toast } = useToast();
   const passiveTimerRef = useRef<number | null>(null);
 
@@ -83,6 +96,67 @@ const Index = () => {
     () => upgrades.staff * 0.5 * marketingMultiplier,
     [upgrades.staff, marketingMultiplier]
   );
+
+  useEffect(() => {
+    const bobaProgress: BobaSave = {
+      bobaCount,
+      totalBoba,
+      totalClicks,
+      completedSessions,
+      bobaGoal,
+      bobaPerClick,
+      passiveBobaRate,
+      challengesCompleted: challenges
+        .filter((challenge) => challenge.completed) // Only completed challenges
+        .map((challenge) => challenge.name),
+      marketingUpgrades: upgrades.marketing,
+      staffUpgrades: upgrades.staff,
+      tapiocaUpgrades: upgrades.tapioca,
+    };
+
+    if (userId && bobaProgress) {
+      const interval = setInterval(() => {
+        return autoSyncProgress(
+          userId,
+          bobaProgress,
+          lastSynced,
+          setLastSynced,
+          setLoading,
+          setError
+        );
+      }, 30000); // Sync every 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [userId, Progress, lastSynced]);
+
+  const handleSaveProgress = async () => {
+    const bobaProgress: BobaSave = {
+      bobaCount,
+      totalBoba,
+      totalClicks,
+      completedSessions,
+      bobaGoal,
+      bobaPerClick,
+      passiveBobaRate,
+      challengesCompleted: challenges
+        .filter((challenge) => challenge.completed) // Only completed challenges
+        .map((challenge) => challenge.name),
+      marketingUpgrades: upgrades.marketing,
+      staffUpgrades: upgrades.staff,
+      tapiocaUpgrades: upgrades.tapioca,
+    };
+
+    if (userId) {
+      await saveProgress(
+        userId,
+        bobaProgress,
+        setLoading,
+        setError,
+        setSavedData
+      );
+    }
+  };
 
   useDebouncedSave(
     bobaCount,
