@@ -252,7 +252,7 @@ const BobaClicker: React.FC<BobaClickerProps> = ({
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto glass-panel animate-slide-up rounded-3xl overflow-hidden">
+    <Card className="w-full max-w-md mx-auto select-none glass-panel animate-slide-up rounded-3xl overflow-hidden">
       <CardContent className="p-0 relative">
         <div ref={containerRef} className="relative">
           <div

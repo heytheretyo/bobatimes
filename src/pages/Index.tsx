@@ -13,6 +13,7 @@ import Instructions from "@/components/Instructions";
 import Footer from "@/components/Footer";
 import useDebouncedSave from "@/lib/use-debounce-save";
 import { playAchievementSound } from "@/lib/sound";
+import AuthBanner from "@/components/AuthBanner";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const loadFromLocalStorage = (key: string, defaultValue: any) => {
@@ -21,7 +22,12 @@ const loadFromLocalStorage = (key: string, defaultValue: any) => {
 };
 
 const Index = () => {
-  // State initialization using the helper function
+  const [showAuthPopup, setShowAuthPopup] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<"signin" | "signup">(
+    "signin"
+  );
+
   const [bobaCount, setBobaCount] = useState<number>(
     () => loadFromLocalStorage("bobaProgress", {}).bobaCount || 0
   );
@@ -288,8 +294,23 @@ const Index = () => {
     });
   };
 
+  const handleOpenAuthModal = (mode: "signin" | "signup") => {
+    setAuthModalMode(mode);
+    setShowAuthModal(true);
+    setShowAuthPopup(false);
+  };
+
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-gradient-to-b from-boba-milk to-secondary">
+      <AuthBanner
+        onSignIn={() => handleOpenAuthModal("signin")}
+        onSignUp={() => handleOpenAuthModal("signup")}
+        visible={true}
+        onDismiss={function (): void {
+          throw new Error("Function not implemented.");
+        }}
+      />
+
       <div className="container max-w-4xl mx-auto px-4 py-8">
         <div className="text-center mb-6 animate-fade-in">
           <h1 className="text-4xl font-molle  tracking-tight  text-boba-brown mb-2">
