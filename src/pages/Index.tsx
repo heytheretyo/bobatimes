@@ -12,6 +12,7 @@ import { Challenge, initialChallenges } from "@/lib/challenges";
 import Instructions from "@/components/Instructions";
 import Footer from "@/components/Footer";
 import useDebouncedSave from "@/lib/use-debounce-save";
+import { playAchievementSound } from "@/lib/sound";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const loadFromLocalStorage = (key: string, defaultValue: any) => {
@@ -193,6 +194,8 @@ const Index = () => {
       if (achieved) {
         setBobaCount((prev) => prev + challenge.reward);
         setTotalBoba((prev) => prev + challenge.reward);
+
+        playAchievementSound();
 
         toast({
           title: `Challenge Completed: ${challenge.name}`,
