@@ -215,6 +215,9 @@ const BobaShop: React.FC<BobaShopProps> = ({
     if (currency >= cost) {
       onPurchase(cost, upgradeId);
 
+      const purchaseSound = new Audio("/sound/purchase.wav");
+      purchaseSound.play().catch(() => {}); // Handle autoplay restrictions
+
       const updatedUpgrades = [...upgrades];
       updatedUpgrades[upgradeIndex] = {
         ...upgrade,
