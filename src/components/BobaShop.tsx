@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { playPurchaseSound } from "@/lib/sound";
 
 interface Upgrade {
   id: string;
@@ -215,8 +216,7 @@ const BobaShop: React.FC<BobaShopProps> = ({
     if (currency >= cost) {
       onPurchase(cost, upgradeId);
 
-      const purchaseSound = new Audio("/sound/purchase.wav");
-      purchaseSound.play().catch(() => {}); // Handle autoplay restrictions
+      playPurchaseSound();
 
       const updatedUpgrades = [...upgrades];
       updatedUpgrades[upgradeIndex] = {
