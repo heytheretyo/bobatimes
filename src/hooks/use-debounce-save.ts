@@ -1,17 +1,23 @@
+import { saveToLocalStorage } from "@/lib/local-storage";
+import { Save } from "@/lib/progress";
 import { useState, useEffect, useRef } from "react";
 
-const useDebouncedSave = (
-  bobaCount,
-  totalBoba,
-  totalClicks,
-  completedSessions,
-  challengesCompleted,
-  bobaGoal,
-  upgrades,
-  bobaPerClick,
-  passiveBobaRate
-) => {
+const useDebouncedSave = (bobaProgress: Save) => {
   const timeoutRef = useRef(null); // Keeps track of the current timeout
+
+  const {
+    bobaCount,
+    totalBoba,
+    totalClicks,
+    completedSessions,
+    challengesCompleted,
+    bobaGoal,
+    marketingUpgrades,
+    staffUpgrades,
+    tapiocaUpgrades,
+    bobaPerClick,
+    passiveBobaRate,
+  } = bobaProgress;
 
   useEffect(() => {
     // Clear previous timeout if there was one
@@ -21,21 +27,22 @@ const useDebouncedSave = (
 
     // Set a new timeout
     timeoutRef.current = setTimeout(() => {
-      const progressData = {
+      const progressData: Save = {
         bobaCount,
         totalBoba,
         totalClicks,
         completedSessions,
         challengesCompleted,
         bobaGoal,
-        upgrades,
         bobaPerClick,
         passiveBobaRate,
+        marketingUpgrades,
+        staffUpgrades,
+        tapiocaUpgrades,
       };
 
-      // Save data to localStorage
-      localStorage.setItem("bobaProgress", JSON.stringify(progressData));
-    }, 1000); // 1-second debounce time
+      saveToLocalStorage("localSave", progressData);
+    }, 2500); // 1-second debounce time
 
     return () => {
       // Cleanup timeout on component unmount or when dependencies change
@@ -43,17 +50,7 @@ const useDebouncedSave = (
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [
-    bobaCount,
-    totalBoba,
-    totalClicks,
-    completedSessions,
-    challengesCompleted,
-    bobaGoal,
-    upgrades,
-    bobaPerClick,
-    passiveBobaRate,
-  ]);
+  }, []);
 };
 
 export default useDebouncedSave;

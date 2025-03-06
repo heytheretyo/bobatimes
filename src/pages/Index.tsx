@@ -18,14 +18,12 @@ import AuthBanner from "@/components/AuthBanner";
 import AuthModal from "@/components/AuthModal";
 import AuthPopup from "@/components/AuthPopup";
 import BuyMeCoffee from "@/components/BuyMeCoffee";
-import { autoSyncProgress, BobaSave, saveProgress } from "@/lib/progress";
+import { autoSyncProgress, Save } from "@/lib/progress";
 import useAuth from "@/hooks/use-auth";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const loadFromLocalStorage = (key: string, defaultValue: any) => {
-  const stored = localStorage.getItem(key);
-  return stored ? JSON.parse(stored) : defaultValue;
-};
+import { loadFromLocalStorage, saveToLocalStorage } from "@/lib/local-storage";
+import { Subject } from "rxjs";
+import { debounceTime } from "rxjs/operators";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const { user } = useAuth();
@@ -44,61 +42,82 @@ const Index = () => {
     "signup"
   );
 
-  const [bobaCount, setBobaCount] = useState<number>(
-    () => loadFromLocalStorage("bobaProgress", {}).bobaCount || 0
+  const [localData, setLocalData] = useState(() =>
+    loadFromLocalStorage("localData", {})
   );
-  const [totalBoba, setTotalBoba] = useState<number>(
-    () => loadFromLocalStorage("bobaProgress", {}).totalBoba || 0
-  );
+
+  const [bobaCount, setBobaCount] = useState<number>(localData.bobaCount || 0);
+  const [totalBoba, setTotalBoba] = useState<number>(localData.totalBoba || 0);
   const [totalClicks, setTotalClicks] = useState<number>(
-    () => loadFromLocalStorage("bobaProgress", {}).totalClicks || 0
+    localData.totalClicks || 0
   );
   const [completedSessions, setCompletedSessions] = useState<number>(
-    () => loadFromLocalStorage("bobaProgress", {}).completedSessions || 0
+    localData.completedSessions || 0
   );
-  const [challengesCompleted, setCompletedChallenges] = useState<number>(
-    () => loadFromLocalStorage("bobaProgress", {}).challengesCompleted || 0
+  const [challengesCompleted, setChallengesCompleted] = useState<string[]>(
+    localData.completedChallenges || []
   );
-  const [bobaGoal, setBobaGoal] = useState<number>(
-    () => loadFromLocalStorage("bobaProgress", {}).bobaGoal || 1000
-  );
+  const [bobaGoal, setBobaGoal] = useState<number>(localData.bobaGoal || 1000);
   const [bobaPerClick, setBobaPerClick] = useState<number>(
-    () => loadFromLocalStorage("bobaProgress", {}).bobaPerClick || 1
+    localData.bobaPerClick || 1
   );
   const [passiveBobaRate, setPassiveBobaRate] = useState<number>(
-    () => loadFromLocalStorage("bobaProgress", {}).passiveBobaRate || 0
+    localData.passiveBobaRate || 0
   );
   const [challenges, setChallenges] = useState<Challenge[]>(initialChallenges);
+
   const [upgrades, setUpgrades] = useState<{
     tapioca: number;
     staff: number;
     marketing: number;
-  }>(
-    loadFromLocalStorage("bobaProgress", {}).upgrades || {
-      tapioca: 1,
-      staff: 0,
-      marketing: 0,
-    }
-  );
+  }>({
+    tapioca: localData.tapiocaUpgrades || 1,
+    staff: localData.staffUpgrades || 0,
+    marketing: localData.marketingUpgrades || 0,
+  });
+
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null); // Track last updated time
+
+  const handleManualSave = () => {
+    const progress = generateProgress();
+    saveToLocalStorage("localSave", progress);
+    setLastUpdated(new Date().toLocaleString());
+  };
+
+  const generateProgress = () => ({
+    bobaCount,
+    totalBoba,
+    totalClicks,
+    completedSessions,
+    bobaGoal,
+    bobaPerClick,
+    passiveBobaRate,
+    challengesCompleted,
+    marketingUpgrades: upgrades.marketing,
+    staffUpgrades: upgrades.staff,
+    tapiocaUpgrades: upgrades.tapioca,
+  });
 
   const { toast } = useToast();
   const passiveTimerRef = useRef<number | null>(null);
+  const progressRef = useRef(null);
 
   const marketingMultiplier = useMemo(
     () => 1 + upgrades.marketing * 0.1,
     [upgrades.marketing]
   );
-  const newBobaPerClick = useMemo(
-    () => 1 * upgrades.tapioca * marketingMultiplier,
-    [upgrades.tapioca, marketingMultiplier]
-  );
-  const passiveRate = useMemo(
-    () => upgrades.staff * 0.5 * marketingMultiplier,
-    [upgrades.staff, marketingMultiplier]
-  );
+  // const newBobaPerClick = useMemo(
+  //   () => 1 * upgrades.tapioca * marketingMultiplier,
+  //   [upgrades.tapioca, marketingMultiplier]
+  // );
+  // const passiveRate = useMemo(
+  //   () => upgrades.staff * 0.5 * marketingMultiplier,
+  //   [upgrades.staff, marketingMultiplier]
+  // );
 
+  // TODO: automatic cloud save
   useEffect(() => {
-    const bobaProgress: BobaSave = {
+    const bobaProgress: Save = {
       bobaCount,
       totalBoba,
       totalClicks,
@@ -106,9 +125,7 @@ const Index = () => {
       bobaGoal,
       bobaPerClick,
       passiveBobaRate,
-      challengesCompleted: challenges
-        .filter((challenge) => challenge.completed) // Only completed challenges
-        .map((challenge) => challenge.name),
+      challengesCompleted,
       marketingUpgrades: upgrades.marketing,
       staffUpgrades: upgrades.staff,
       tapiocaUpgrades: upgrades.tapioca,
@@ -128,95 +145,69 @@ const Index = () => {
 
       return () => clearInterval(interval);
     }
-  }, [userId, Progress, lastSynced]);
+  }, [userId, lastSynced]);
 
-  const handleSaveProgress = async () => {
-    const bobaProgress: BobaSave = {
-      bobaCount,
-      totalBoba,
-      totalClicks,
-      completedSessions,
-      bobaGoal,
-      bobaPerClick,
-      passiveBobaRate,
-      challengesCompleted: challenges
-        .filter((challenge) => challenge.completed) // Only completed challenges
-        .map((challenge) => challenge.name),
-      marketingUpgrades: upgrades.marketing,
-      staffUpgrades: upgrades.staff,
-      tapiocaUpgrades: upgrades.tapioca,
+  // TODO: automatic loccal save
+  // useEffect(() => {
+  //   const saveDataInterval = setInterval(() => {
+  //     const progress = generateProgress();
+  //     console.log("Saving data:", progress);
+  //     saveToLocalStorage("localSave", progress);
+  //   }, 30000); // 1000 minutes in milliseconds (1000 * 60 * 1000)
+
+  //   return () => clearInterval(saveDataInterval); // Cleanup interval on unmount
+  // }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      if (progressRef.current) {
+        saveToLocalStorage("localSave", progressRef.current);
+      }
+      event.returnValue = ""; // Required for showing the confirmation dialog
     };
 
-    if (userId) {
-      await saveProgress(
-        userId,
-        bobaProgress,
-        setLoading,
-        setError,
-        setSavedData
-      );
-    }
-  };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
-  useDebouncedSave(
+  useEffect(() => {
+    progressRef.current = generateProgress();
+  }, [
     bobaCount,
     totalBoba,
     totalClicks,
     completedSessions,
-    challengesCompleted,
     bobaGoal,
-    upgrades,
     bobaPerClick,
-    passiveBobaRate
-  );
+    passiveBobaRate,
+    upgrades,
+  ]);
 
   useEffect(() => {
-    const savedData = localStorage.getItem("bobaGameProgress");
+    const savedData = localStorage.getItem("localSave");
     if (savedData) {
-      const parsedData = JSON.parse(savedData);
+      const parsedData: Save = JSON.parse(savedData);
       setBobaCount(parsedData.bobaCount || 0);
       setTotalBoba(parsedData.totalBoba || 0);
       setTotalClicks(parsedData.totalClicks || 0);
       setCompletedSessions(parsedData.completedSessions || 0);
-      setChallenges(parsedData.challenges || initialChallenges);
-      setUpgrades(
-        parsedData.upgrades || { tapioca: 1, staff: 0, marketing: 0 }
-      );
+
+      setUpgrades({
+        tapioca: parsedData.tapiocaUpgrades || 1,
+        staff: parsedData.staffUpgrades || 0,
+        marketing: parsedData.marketingUpgrades || 0,
+      });
       setBobaPerClick(parsedData.bobaPerClick || 1);
       setPassiveBobaRate(parsedData.passiveBobaRate || 0);
+      setChallengesCompleted(parsedData.challengesCompleted || []);
     }
   }, []);
 
-  // useEffect(() => {
-  //   const saveInterval = setInterval(() => {
-  //     const progressData = {
-  //       bobaCount,
-  //       totalBoba,
-  //       totalClicks,
-  //       completedSessions,
-  //       challengesCompleted,
-  //       bobaGoal,
-  //       upgrades,
-  //       bobaPerClick,
-  //       passiveBobaRate,
-  //     };
-  //     localStorage.setItem("bobaProgress", JSON.stringify(progressData));
-  //   }, 5000); // Save every 5 seconds
-
-  //   return () => clearInterval(saveInterval); // Cleanup on unmount
-  // }, [
-  //   bobaCount,
-  //   totalBoba,
-  //   totalClicks,
-  //   completedSessions,
-  //   challengesCompleted,
-  //   bobaGoal,
-  //   upgrades,
-  //   bobaPerClick,
-  //   passiveBobaRate,
-  // ]);
-
   // Initialize passive income timer
+  /// TODO: WEB WORKER
   useEffect(() => {
     passiveTimerRef.current = window.setInterval(() => {
       if (passiveBobaRate > 0) {
@@ -235,6 +226,7 @@ const Index = () => {
     };
   }, [passiveBobaRate]);
 
+  // TODO: LISTEN TO WW
   useEffect(() => {
     if (totalBoba >= bobaGoal) {
       toast({
@@ -248,12 +240,8 @@ const Index = () => {
   }, [totalBoba, bobaGoal, toast]);
 
   useEffect(() => {
-    const rewardedChallenges = JSON.parse(
-      localStorage.getItem("rewardedChallenges") || "{}"
-    );
-
-    const updatedChallenges = challenges.map((challenge) => {
-      if (challenge.completed || rewardedChallenges[challenge.id]) {
+    const updatedChallenges = challenges.map((challenge, idx) => {
+      if (challenge.completed || challengesCompleted.includes(challenge.id)) {
         challenge.completed = true;
         return challenge;
       }
@@ -287,13 +275,11 @@ const Index = () => {
           duration: 5000,
         });
 
-        setCompletedChallenges((prev) => prev + 1);
+        setChallengesCompleted((prev) => [...prev, challenge.id]);
 
-        rewardedChallenges[challenge.id] = true;
-        localStorage.setItem(
-          "rewardedChallenges",
-          JSON.stringify(rewardedChallenges)
-        );
+        // ...challenges
+        //   .filter((challenge) => challenge.completed) // Only completed challenges
+        //   .map((challenge) => challenge.name),
 
         return { ...challenge, completed: true };
       }
@@ -302,35 +288,16 @@ const Index = () => {
     });
 
     setChallenges(updatedChallenges);
-  }, [totalBoba, completedSessions, totalClicks, passiveBobaRate, challenges]);
-
-  useEffect(() => {
-    setBobaPerClick(newBobaPerClick);
-    setPassiveBobaRate(passiveRate);
-
-    const progressData = {
-      bobaCount,
-      totalBoba,
-      totalClicks,
-      completedSessions,
-      challengesCompleted,
-      bobaGoal,
-      upgrades,
-      bobaPerClick: newBobaPerClick,
-      passiveBobaRate: passiveRate,
-    };
-
-    localStorage.setItem("bobaProgress", JSON.stringify(progressData));
   }, [
-    bobaCount,
     totalBoba,
-    totalClicks,
+    bobaCount,
+    completedSessions,
     completedSessions,
     challengesCompleted,
     bobaGoal,
     upgrades,
-    newBobaPerClick,
-    passiveRate,
+    bobaPerClick,
+    passiveBobaRate,
   ]);
 
   const handleBobaMade = (amount: number) => {
@@ -365,6 +332,11 @@ const Index = () => {
       [upgradeId]: prev[upgradeId as keyof typeof prev] + 1,
     }));
 
+    const marketingMultiplier = 1 + upgrades.marketing * 0.1;
+
+    setBobaPerClick(1 * upgrades.tapioca * marketingMultiplier);
+    setPassiveBobaRate(1 * upgrades.staff * 0.5 * marketingMultiplier);
+
     toast({
       title: "Upgrade purchased!",
       description: `Your boba business is growing!`,
@@ -395,6 +367,17 @@ const Index = () => {
           <p className="text-muted-foreground">
             Stay productive while growing your boba tea empire!
           </p>
+        </div>
+
+        <div className="mb-4 text-xs flex items-center space-x-2">
+          <p>{lastUpdated && ` Last updated: ${lastUpdated}`}</p>
+          <Button
+            variant="link"
+            className="p-0 text-xs ml"
+            onClick={handleManualSave}
+          >
+            Save now
+          </Button>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">

@@ -2,7 +2,7 @@
 import { database } from "@/lib/appwrite";
 import { Query } from "appwrite";
 
-export type BobaSave = {
+export type Save = {
   bobaCount: number;
   totalBoba: number;
   totalClicks: number;
@@ -32,7 +32,7 @@ const checkUserExists = async (userId: string) => {
 
 export const autoSyncProgress = async (
   userId: string | null,
-  save: BobaSave,
+  save: Save,
   lastSynced: string | null,
   setLastSynced: React.Dispatch<React.SetStateAction<string | null>>,
   setLoading: React.Dispatch<React.SetStateAction<boolean>>,
@@ -89,42 +89,5 @@ export const autoSyncProgress = async (
     console.error("Auto-sync error:", err);
   } finally {
     setLoading(false);
-  }
-};
-
-export const saveProgress = async (
-  userId: string,
-  save: BobaSave,
-  setLoading: React.Dispatch<React.SetStateAction<boolean>>,
-  setError: React.Dispatch<React.SetStateAction<string | null>>,
-  setSavedData: React.Dispatch<React.SetStateAction<any>>
-) => {
-  if (!userId) {
-    setError("User not signed in");
-    return;
-  }
-
-  setLoading(true);
-  setError(null); // Reset previous errors
-  try {
-    const response = await database.createDocument(
-      import.meta.env.VITE_aPP_APPWRITE_DATABASE_ID,
-      import.meta.env.VITE_aPP_APPWRITE_COLLECTION_SAVES_ID,
-      "unique()",
-      {
-        userId,
-        ...save,
-        timestamp: new Date().toISOString(),
-      }
-    );
-
-    setSavedData(response);
-    setLoading(false);
-    return response;
-  } catch (err) {
-    setError("Error saving boba progress");
-    setLoading(false);
-    console.error("Error saving boba progress:", err);
-    throw err;
   }
 };
