@@ -18,7 +18,11 @@ import AuthBanner from "@/components/AuthBanner";
 import AuthModal from "@/components/AuthModal";
 import AuthPopup from "@/components/AuthPopup";
 import BuyMeCoffee from "@/components/BuyMeCoffee";
-import { autoSyncProgress, Save } from "@/lib/progress";
+import {
+  getDocumentCloudStorage,
+  Save,
+  saveToCloudStorage,
+} from "@/lib/progress";
 import useAuth from "@/hooks/use-auth";
 import { loadFromLocalStorage, saveToLocalStorage } from "@/lib/local-storage";
 import { Subject } from "rxjs";
@@ -46,24 +50,14 @@ const Index = () => {
     loadFromLocalStorage("localData", {})
   );
 
-  const [bobaCount, setBobaCount] = useState<number>(localData.bobaCount || 0);
-  const [totalBoba, setTotalBoba] = useState<number>(localData.totalBoba || 0);
-  const [totalClicks, setTotalClicks] = useState<number>(
-    localData.totalClicks || 0
-  );
-  const [completedSessions, setCompletedSessions] = useState<number>(
-    localData.completedSessions || 0
-  );
-  const [challengesCompleted, setChallengesCompleted] = useState<string[]>(
-    localData.completedChallenges || []
-  );
-  const [bobaGoal, setBobaGoal] = useState<number>(localData.bobaGoal || 1000);
-  const [bobaPerClick, setBobaPerClick] = useState<number>(
-    localData.bobaPerClick || 1
-  );
-  const [passiveBobaRate, setPassiveBobaRate] = useState<number>(
-    localData.passiveBobaRate || 0
-  );
+  const [bobaCount, setBobaCount] = useState<number>(0);
+  const [totalBoba, setTotalBoba] = useState<number>(0);
+  const [totalClicks, setTotalClicks] = useState<number>(0);
+  const [completedSessions, setCompletedSessions] = useState<number>(0);
+  const [challengesCompleted, setChallengesCompleted] = useState<string[]>([]);
+  const [bobaGoal, setBobaGoal] = useState<number>(1000);
+  const [bobaPerClick, setBobaPerClick] = useState<number>(1);
+  const [passiveBobaRate, setPassiveBobaRate] = useState<number>(0);
   const [challenges, setChallenges] = useState<Challenge[]>(initialChallenges);
 
   const [upgrades, setUpgrades] = useState<{
@@ -80,7 +74,18 @@ const Index = () => {
 
   const handleManualSave = () => {
     const progress = generateProgress();
-    saveToLocalStorage("localSave", progress);
+    if (userId) {
+      saveToCloudStorage(
+        userId,
+        progress,
+        lastSynced,
+        setLastSynced,
+        setLoading,
+        setError
+      );
+    } else {
+      saveToLocalStorage("localSave", progress);
+    }
     setLastUpdated(new Date().toLocaleString());
   };
 
@@ -116,36 +121,36 @@ const Index = () => {
   // );
 
   // TODO: automatic cloud save
-  useEffect(() => {
-    const bobaProgress: Save = {
-      bobaCount,
-      totalBoba,
-      totalClicks,
-      completedSessions,
-      bobaGoal,
-      bobaPerClick,
-      passiveBobaRate,
-      challengesCompleted,
-      marketingUpgrades: upgrades.marketing,
-      staffUpgrades: upgrades.staff,
-      tapiocaUpgrades: upgrades.tapioca,
-    };
+  // useEffect(() => {
+  //   const bobaProgress: Save = {
+  //     bobaCount,
+  //     totalBoba,
+  //     totalClicks,
+  //     completedSessions,
+  //     bobaGoal,
+  //     bobaPerClick,
+  //     passiveBobaRate,
+  //     challengesCompleted,
+  //     marketingUpgrades: upgrades.marketing,
+  //     staffUpgrades: upgrades.staff,
+  //     tapiocaUpgrades: upgrades.tapioca,
+  //   };
 
-    if (userId && bobaProgress) {
-      const interval = setInterval(() => {
-        return autoSyncProgress(
-          userId,
-          bobaProgress,
-          lastSynced,
-          setLastSynced,
-          setLoading,
-          setError
-        );
-      }, 30000); // Sync every 30 seconds
+  //   if (userId && bobaProgress) {
+  //     const interval = setInterval(() => {
+  //       return autoSyncProgress(
+  //         userId,
+  //         bobaProgress,
+  //         lastSynced,
+  //         setLastSynced,
+  //         setLoading,
+  //         setError
+  //       );
+  //     }, 30000); // Sync every 30 seconds
 
-      return () => clearInterval(interval);
-    }
-  }, [userId, lastSynced]);
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [userId, lastSynced]);
 
   // TODO: automatic loccal save
   // useEffect(() => {
@@ -159,10 +164,26 @@ const Index = () => {
   // }, []);
 
   useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
       event.preventDefault();
       if (progressRef.current) {
         saveToLocalStorage("localSave", progressRef.current);
+
+        if (userId) {
+          const saveData = progressRef.current;
+
+          const setLoading = () => {}; // You can implement this if you want to show a loading state
+          const setError = (errorMessage: string | null) => {}; // You can implement this for error handling
+
+          await saveToCloudStorage(
+            userId,
+            saveData,
+            lastSynced,
+            setLastSynced,
+            setLoading,
+            setError
+          );
+        }
       }
       event.returnValue = ""; // Required for showing the confirmation dialog
     };
@@ -187,24 +208,54 @@ const Index = () => {
   ]);
 
   useEffect(() => {
-    const savedData = localStorage.getItem("localSave");
-    if (savedData) {
-      const parsedData: Save = JSON.parse(savedData);
-      setBobaCount(parsedData.bobaCount || 0);
-      setTotalBoba(parsedData.totalBoba || 0);
-      setTotalClicks(parsedData.totalClicks || 0);
-      setCompletedSessions(parsedData.completedSessions || 0);
+    const loadSaveData = async () => {
+      if (userId) {
+        // Fetch save data from the cloud if authenticated
+        try {
+          const data = await getDocumentCloudStorage(userId);
 
-      setUpgrades({
-        tapioca: parsedData.tapiocaUpgrades || 1,
-        staff: parsedData.staffUpgrades || 0,
-        marketing: parsedData.marketingUpgrades || 0,
-      });
-      setBobaPerClick(parsedData.bobaPerClick || 1);
-      setPassiveBobaRate(parsedData.passiveBobaRate || 0);
-      setChallengesCompleted(parsedData.challengesCompleted || []);
-    }
-  }, []);
+          if (data) {
+            setBobaCount(data.bobaCount || 0);
+            setTotalBoba(data.totalBoba || 0);
+            setTotalClicks(data.totalClicks || 0);
+            setCompletedSessions(data.completedSessions || 0);
+
+            setUpgrades({
+              tapioca: data.tapiocaUpgrades || 1,
+              staff: data.staffUpgrades || 0,
+              marketing: data.marketingUpgrades || 0,
+            });
+            setBobaPerClick(data.bobaPerClick || 1);
+            setPassiveBobaRate(data.passiveBobaRate || 0);
+            setChallengesCompleted(data.challengesCompleted || []);
+          }
+        } catch (error) {
+          console.error("Error fetching save data:", error);
+        }
+      } else {
+        // Load save data from localStorage if not authenticated
+        const savedData = localStorage.getItem("localSave");
+        if (savedData) {
+          const parsedData: Save = JSON.parse(savedData);
+          setBobaCount(parsedData.bobaCount || 0);
+          setTotalBoba(parsedData.totalBoba || 0);
+          setTotalClicks(parsedData.totalClicks || 0);
+          setCompletedSessions(parsedData.completedSessions || 0);
+
+          setUpgrades({
+            tapioca: parsedData.tapiocaUpgrades || 1,
+            staff: parsedData.staffUpgrades || 0,
+            marketing: parsedData.marketingUpgrades || 0,
+          });
+          setBobaPerClick(parsedData.bobaPerClick || 1);
+          setPassiveBobaRate(parsedData.passiveBobaRate || 0);
+          setChallengesCompleted(parsedData.challengesCompleted || []);
+        }
+      }
+    };
+
+    loadSaveData();
+  }, [userId]); // Re-run when the userId changes (i.e., on login/logout)
 
   // Initialize passive income timer
   /// TODO: WEB WORKER

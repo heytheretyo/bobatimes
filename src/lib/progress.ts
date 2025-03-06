@@ -30,7 +30,28 @@ const checkUserExists = async (userId: string) => {
   }
 };
 
-export const autoSyncProgress = async (
+export const getDocumentCloudStorage = async (userId: string) => {
+  try {
+    const documents = await database.listDocuments(
+      import.meta.env.VITE_aPP_APPWRITE_DATABASE_ID,
+      import.meta.env.VITE_aPP_APPWRITE_COLLECTION_SAVES_ID,
+      [Query.equal("userId", userId)]
+    );
+
+    // Check if the document exists
+    if (documents.total > 0) {
+      return documents.documents[0]; // Return the first document (user's document)
+    } else {
+      console.log("No document found for the given userId");
+      return null; // Return null if no document is found
+    }
+  } catch (err) {
+    console.error("Error fetching user's document:", err);
+    return null; // Return null if an error occurs
+  }
+};
+
+export const saveToCloudStorage = async (
   userId: string | null,
   save: Save,
   lastSynced: string | null,
