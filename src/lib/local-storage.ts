@@ -14,3 +14,11 @@ export function saveToLocalStorage(key: string, data: any) {
     console.error("Error saving to localStorage:", error);
   }
 }
+
+export function removeFromLocalStorage(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.error("Error removing from localStorage:", error);
+  }
+}

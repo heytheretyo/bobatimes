@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 const Index = () => {
   const { user } = useAuth();
 
-  const userId = user?._id || null;
+  let userId = user?._id || null;
 
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -74,6 +74,7 @@ const Index = () => {
 
   const handleManualSave = () => {
     const progress = generateProgress();
+
     if (userId) {
       saveToCloudStorage(
         userId,
@@ -166,25 +167,25 @@ const Index = () => {
   useEffect(() => {
     const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
       event.preventDefault();
-      if (progressRef.current) {
-        saveToLocalStorage("localSave", progressRef.current);
+      // if (progressRef.current) {
+      //   saveToLocalStorage("localSave", progressRef.current);
 
-        if (userId) {
-          const saveData = progressRef.current;
+      //   if (userId) {
+      //     const saveData = progressRef.current;
 
-          const setLoading = () => {}; // You can implement this if you want to show a loading state
-          const setError = (errorMessage: string | null) => {}; // You can implement this for error handling
+      //     const setLoading = () => {}; // You can implement this if you want to show a loading state
+      //     const setError = (errorMessage: string | null) => {}; // You can implement this for error handling
 
-          await saveToCloudStorage(
-            userId,
-            saveData,
-            lastSynced,
-            setLastSynced,
-            setLoading,
-            setError
-          );
-        }
-      }
+      //     await saveToCloudStorage(
+      //       userId,
+      //       saveData,
+      //       lastSynced,
+      //       setLastSynced,
+      //       setLoading,
+      //       setError
+      //     );
+      //   }
+      // }
       event.returnValue = ""; // Required for showing the confirmation dialog
     };
 
@@ -408,6 +409,9 @@ const Index = () => {
         onSignUp={() => handleOpenAuthModal("signup")}
         visible={true}
         onDismiss={() => {}}
+        onLogout={() => {
+          userId = null;
+        }}
       />
 
       <div className="container max-w-4xl mx-auto px-4 py-8">

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import useAuth from "@/hooks/use-auth";
+import { removeFromLocalStorage } from "@/lib/local-storage";
 import { LogInIcon, UserPlusIcon, XIcon, ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -8,9 +9,14 @@ interface AuthBannerProps {
   onSignUp: () => void;
   onDismiss: () => void;
   visible: boolean;
+  onLogout?: () => void; // Add this line for the logout callback
 }
 
-export default function AuthBanner({ onSignUp, visible }: AuthBannerProps) {
+export default function AuthBanner({
+  onSignUp,
+  visible,
+  onLogout,
+}: AuthBannerProps) {
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -23,6 +29,13 @@ export default function AuthBanner({ onSignUp, visible }: AuthBannerProps) {
   const handleLogout = () => {
     logout();
     setDropdownOpen(false); // Close dropdown after logout
+    onLogout();
+    window.location.reload();
+  };
+
+  const handleResetProgress = () => {
+    removeFromLocalStorage("localSave");
+    window.location.reload();
   };
 
   return (
@@ -55,6 +68,13 @@ export default function AuthBanner({ onSignUp, visible }: AuthBannerProps) {
 
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 bg-white text-black shadow-lg rounded-md w-40">
+                <Button
+                  variant="ghost"
+                  className="w-full text-left px-4 py-2"
+                  onClick={handleResetProgress}
+                >
+                  Reset local progress
+                </Button>
                 <Button
                   variant="ghost"
                   className="w-full text-left px-4 py-2"
