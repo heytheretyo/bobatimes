@@ -4,7 +4,7 @@ import { Coffee } from "lucide-react";
 export default function BuyMeCoffee() {
   return (
     <a
-      href="https://www.buymeacoffee.com/yourusername"
+      href="https://www.buymeacoffee.com/arthantyo"
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-4 right-4 z-50"
