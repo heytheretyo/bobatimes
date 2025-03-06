@@ -59,8 +59,10 @@ const Index = () => {
   const [bobaPerClick, setBobaPerClick] = useState<number>(1);
   const [passiveBobaRate, setPassiveBobaRate] = useState<number>(0);
   const [challenges, setChallenges] = useState<Challenge[]>(initialChallenges);
+  const [pomodoroRate, setPomodoroRate] = useState<number>(0);
 
   const [upgrades, setUpgrades] = useState<{
+    pomodoro: number;
     tapioca: number;
     staff: number;
     marketing: number;
@@ -68,6 +70,7 @@ const Index = () => {
     tapioca: localData.tapiocaUpgrades || 1,
     staff: localData.staffUpgrades || 0,
     marketing: localData.marketingUpgrades || 0,
+    pomodoro: localData.pomodoroUpgrades || 0,
   });
 
   const [lastUpdated, setLastUpdated] = useState<string | null>(null); // Track last updated time
@@ -102,16 +105,12 @@ const Index = () => {
     marketingUpgrades: upgrades.marketing,
     staffUpgrades: upgrades.staff,
     tapiocaUpgrades: upgrades.tapioca,
+    pomodoroUpgrades: upgrades.pomodoro,
   });
 
   const { toast } = useToast();
   const passiveTimerRef = useRef<number | null>(null);
-  const progressRef = useRef(null);
 
-  const marketingMultiplier = useMemo(
-    () => 1 + upgrades.marketing * 0.1,
-    [upgrades.marketing]
-  );
   // const newBobaPerClick = useMemo(
   //   () => 1 * upgrades.tapioca * marketingMultiplier,
   //   [upgrades.tapioca, marketingMultiplier]
@@ -196,19 +195,6 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    progressRef.current = generateProgress();
-  }, [
-    bobaCount,
-    totalBoba,
-    totalClicks,
-    completedSessions,
-    bobaGoal,
-    bobaPerClick,
-    passiveBobaRate,
-    upgrades,
-  ]);
-
-  useEffect(() => {
     const loadSaveData = async () => {
       if (userId) {
         // Fetch save data from the cloud if authenticated
@@ -225,6 +211,7 @@ const Index = () => {
               tapioca: data.tapiocaUpgrades || 1,
               staff: data.staffUpgrades || 0,
               marketing: data.marketingUpgrades || 0,
+              pomodoro: data.pomodoroUpgrades || 0,
             });
             setBobaPerClick(data.bobaPerClick || 1);
             setPassiveBobaRate(data.passiveBobaRate || 0);
@@ -247,6 +234,7 @@ const Index = () => {
             tapioca: parsedData.tapiocaUpgrades || 1,
             staff: parsedData.staffUpgrades || 0,
             marketing: parsedData.marketingUpgrades || 0,
+            pomodoro: parsedData.pomodoroUpgrades || 0,
           });
           setBobaPerClick(parsedData.bobaPerClick || 1);
           setPassiveBobaRate(parsedData.passiveBobaRate || 0);
@@ -353,9 +341,36 @@ const Index = () => {
   ]);
 
   const handleBobaMade = (amount: number) => {
-    setBobaCount((prev) => prev + amount);
-    setTotalBoba((prev) => prev + amount);
-    setTotalClicks((prev) => prev + 1);
+    const newBobaCount = bobaCount + amount;
+    const newTotalBoba = totalBoba + amount;
+    const newTotalClicks = totalClicks + 1;
+
+    // Only update state if the value crosses a significant threshold
+    const K_THRESHOLD = 1000;
+    const B_THRESHOLD = 1000000;
+    const T_THRESHOLD = 1000000000;
+
+    const updateBobaCount = (newBoba: number, prevBoba: number) => {
+      if (newBoba < K_THRESHOLD) {
+        return newBoba; // Allow update if under 1K
+      }
+
+      if (
+        (newBoba >= K_THRESHOLD &&
+          Math.abs(newBoba - prevBoba) >= K_THRESHOLD) ||
+        (newBoba >= B_THRESHOLD &&
+          Math.abs(newBoba - prevBoba) >= B_THRESHOLD) ||
+        (newBoba >= T_THRESHOLD && Math.abs(newBoba - prevBoba) >= T_THRESHOLD)
+      ) {
+        return newBoba;
+      }
+      return prevBoba; // Avoid unnecessary update if the change is too small
+    };
+
+    // Only update if there's a significant change
+    setBobaCount((prev) => updateBobaCount(newBobaCount, prev));
+    setTotalBoba((prev) => updateBobaCount(newTotalBoba, prev));
+    setTotalClicks((prev) => newTotalClicks); // This can always be updated as it increments
   };
 
   const handleTimerComplete = (mode: "focus" | "break", reward: number) => {
@@ -385,10 +400,11 @@ const Index = () => {
     }));
 
     const marketingMultiplier = 1 + upgrades.marketing * 0.1;
+    const pomodoroMultiplier = 1 + (upgrades.pomodoro ?? 0) * 0.5;
 
     setBobaPerClick(1 * upgrades.tapioca * marketingMultiplier);
     setPassiveBobaRate(1 * upgrades.staff * 0.5 * marketingMultiplier);
-
+    setPomodoroRate(1 * upgrades.pomodoro * pomodoroMultiplier);
     toast({
       title: "Upgrade purchased!",
       description: `Your boba business is growing!`,

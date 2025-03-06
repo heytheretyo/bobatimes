@@ -1,6 +1,7 @@
 import type React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trophy, Zap, Coffee, TrendingUp, MouseIcon } from "lucide-react";
+import { formatNumber } from "@/lib/format";
 
 interface StatisticsPanelProps {
   totalBoba: number;
@@ -30,7 +31,7 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
               Current Boba
             </div>
             <div className="text-2xl font-bold text-boba-brown dark:text-amber-300">
-              {Math.floor(totalBoba).toLocaleString()}
+              {formatNumber(totalBoba)}
             </div>
           </div>
 
@@ -50,7 +51,7 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
               Per Click
             </div>
             <div className="text-xl font-bold text-boba-brown dark:text-amber-300 flex items-center">
-              {bobaPerClick.toFixed(1)}
+              {formatNumber(bobaPerClick)}
               <span className="text-xs text-muted-foreground dark:text-slate-400 ml-1">
                 boba
               </span>
@@ -63,7 +64,7 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
               Passive
             </div>
             <div className="text-xl font-bold text-boba-brown dark:text-amber-300 flex items-center">
-              {passiveBobaRate.toFixed(1)}
+              {formatNumber(passiveBobaRate)}
               <span className="text-xs text-muted-foreground dark:text-slate-400 ml-1">
                 per sec
               </span>

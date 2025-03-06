@@ -3,6 +3,7 @@ import { database } from "@/lib/appwrite";
 import { Query } from "appwrite";
 
 export type Save = {
+  pomodoroUpgrades: number;
   bobaCount: number;
   totalBoba: number;
   totalClicks: number;

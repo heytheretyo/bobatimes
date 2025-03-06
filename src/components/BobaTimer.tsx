@@ -102,7 +102,7 @@ const BobaTimer: React.FC<BobaTimerProps> = ({ onTimerComplete }) => {
 
   const calculateReward = (sessionDurationMinutes: number): number => {
     // Base reward: 5 boba per minute
-    const baseReward = 5 * sessionDurationMinutes;
+    const baseReward = 50 * sessionDurationMinutes;
 
     // Bonus for longer sessions: 1 extra boba per minute for sessions over 15 minutes
     const bonusReward =

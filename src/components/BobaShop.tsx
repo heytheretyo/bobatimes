@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { playPurchaseSound } from "@/lib/sound";
+import { formatNumber } from "@/lib/format";
 
 interface Upgrade {
   id: string;
@@ -58,7 +59,7 @@ const BobaShop: React.FC<BobaShopProps> = ({
       id: "tapioca",
       name: "Premium Tapioca",
       description: "Better tapioca pearls increase boba per click",
-      baseCost: 10,
+      baseCost: 100,
       currentLevel: 1,
       effect: (level) => level,
       icon: (
@@ -70,7 +71,7 @@ const BobaShop: React.FC<BobaShopProps> = ({
       id: "staff",
       name: "Hire Staff",
       description: "Employees generate boba even when you're focusing",
-      baseCost: 25,
+      baseCost: 1200,
       currentLevel: 0,
       effect: (level) => level * 0.5,
       icon: (
@@ -82,7 +83,7 @@ const BobaShop: React.FC<BobaShopProps> = ({
       id: "marketing",
       name: "Marketing",
       description: "Promote your shop for more customers",
-      baseCost: 50,
+      baseCost: 3000,
       currentLevel: 0,
       effect: (level) => level * 1.5,
       icon: <Sparkles size={18} className="text-yellow-500" />,
@@ -93,47 +94,47 @@ const BobaShop: React.FC<BobaShopProps> = ({
       id: "soundtrack",
       name: "Lofi Soundtrack",
       description: "Play relaxing lofi music to attract customers",
-      baseCost: 75,
+      baseCost: 100000,
       currentLevel: 0,
       effect: (level) => level * 0.8,
       icon: <Music size={18} className="text-purple-500" />,
       category: "special",
     },
     {
-      id: "automation",
+      id: "staff",
       name: "Boba Machine",
       description: "Automatic boba maker increases passive income",
-      baseCost: 120,
+      baseCost: 4400,
       currentLevel: 0,
       effect: (level) => level * 2,
       icon: <Zap size={18} className="text-blue-500" />,
       category: "passive",
     },
     {
-      id: "franchise",
+      id: "staff",
       name: "Franchise",
       description: "Open additional boba shops around town",
-      baseCost: 250,
+      baseCost: 25000,
       currentLevel: 0,
       effect: (level) => level * 5,
       icon: <Store size={18} className="text-green-500" />,
       category: "passive",
     },
     {
-      id: "flavors",
+      id: "tapioca",
       name: "Special Flavors",
       description: "Unique flavors that customers love",
-      baseCost: 100,
+      baseCost: 25000,
       currentLevel: 0,
       effect: (level) => level * 2,
       icon: <Flame size={18} className="text-orange-500" />,
       category: "basic",
     },
     {
-      id: "loyalty",
+      id: "rep",
       name: "Loyalty Program",
       description: "Reward returning customers",
-      baseCost: 180,
+      baseCost: 20000,
       currentLevel: 0,
       effect: (level) => level * 3,
       icon: <Star size={18} className="text-yellow-500" />,
@@ -144,17 +145,17 @@ const BobaShop: React.FC<BobaShopProps> = ({
       id: "pomodoro-multiplier",
       name: "Pomodoro Multiplier",
       description: "Increase boba earned from completed focus sessions",
-      baseCost: 200,
+      baseCost: 2500,
       currentLevel: 0,
       effect: (level) => level * 0.5, // 50% boost per level
       icon: <Timer size={18} className="text-red-500" />,
       category: "multiplier",
     },
     {
-      id: "click-multiplier",
+      id: "tapioca",
       name: "Click Multiplier",
       description: "Multiply boba earned from each click",
-      baseCost: 150,
+      baseCost: 3500,
       currentLevel: 0,
       effect: (level) => level * 0.25, // 25% boost per level
       icon: <Plus size={18} className="text-blue-500" />,
@@ -164,27 +165,27 @@ const BobaShop: React.FC<BobaShopProps> = ({
       id: "nightshift",
       name: "Night Shift",
       description: "Earn more boba during nighttime hours",
-      baseCost: 300,
+      baseCost: 20000,
       currentLevel: 0,
       effect: (level) => level * 2,
       icon: <Moon size={18} className="text-indigo-500" />,
       category: "special",
     },
     {
-      id: "delivery",
+      id: "staff",
       name: "Boba Delivery",
       description: "Deliver boba to customers for passive income",
-      baseCost: 350,
+      baseCost: 2200,
       currentLevel: 0,
       effect: (level) => level * 3,
       icon: <ShoppingBag size={18} className="text-green-500" />,
       category: "passive",
     },
     {
-      id: "wholesale",
+      id: "tapioca",
       name: "Wholesale Supplies",
       description: "Buy supplies in bulk to increase efficiency",
-      baseCost: 275,
+      baseCost: 5275,
       currentLevel: 0,
       effect: (level) => level * 0.3, // 30% efficiency boost
       icon: <ShoppingCart size={18} className="text-amber-500" />,
@@ -194,7 +195,7 @@ const BobaShop: React.FC<BobaShopProps> = ({
       id: "seasonal",
       name: "Seasonal Specials",
       description: "Offer seasonal boba flavors for premium prices",
-      baseCost: 400,
+      baseCost: 50000,
       currentLevel: 0,
       effect: (level) => level * 4,
       icon: <Sun size={18} className="text-yellow-500" />,
@@ -251,7 +252,7 @@ const BobaShop: React.FC<BobaShopProps> = ({
 
           return (
             <div
-              key={upgrade.id}
+              key={upgrade.name}
               className={`flex justify-between items-center p-3 rounded-xl border transition-all duration-300
               ${
                 canAfford
@@ -344,7 +345,7 @@ const BobaShop: React.FC<BobaShopProps> = ({
               Per Click
             </p>
             <p className="text-xl font-medium text-boba-brown dark:text-amber-300">
-              {bobaPerClick.toFixed(1)}
+              {formatNumber(bobaPerClick)}
             </p>
           </div>
           <div className="bg-secondary/50 dark:bg-slate-700/50 rounded-xl p-3 text-center">
@@ -352,7 +353,7 @@ const BobaShop: React.FC<BobaShopProps> = ({
               Per Second
             </p>
             <p className="text-xl font-medium text-boba-brown dark:text-amber-300">
-              {passiveBobaRate.toFixed(1)}
+              {formatNumber(passiveBobaRate)}
             </p>
           </div>
         </div>
