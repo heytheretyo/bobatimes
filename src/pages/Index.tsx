@@ -375,8 +375,8 @@ const Index = () => {
 
   const handleTimerComplete = (mode: "focus" | "break", reward: number) => {
     if (mode === "focus") {
-      // Reward player for completing a focus session
-      const totalReward = reward * (1 + completedSessions * 0.1); // Increases slightly with more completed sessions
+      const totalReward = reward * (1 + completedSessions * 0.1) * pomodoroRate;
+
       setBobaCount((prev) => prev + totalReward);
       setTotalBoba((prev) => prev + totalReward);
       setCompletedSessions((prev) => prev + 1);
@@ -394,17 +394,23 @@ const Index = () => {
   const handlePurchase = (cost: number, upgradeId: string) => {
     setBobaCount((prev) => prev - cost);
 
-    setUpgrades((prev) => ({
-      ...prev,
-      [upgradeId]: prev[upgradeId as keyof typeof prev] + 1,
-    }));
+    setUpgrades((prev) => {
+      const newUpgrades = {
+        ...prev,
+        [upgradeId]: (prev[upgradeId as keyof typeof prev] ?? 0) + 1,
+      };
 
-    const marketingMultiplier = 1 + upgrades.marketing * 0.1;
-    const pomodoroMultiplier = 1 + (upgrades.pomodoro ?? 0) * 0.5;
+      const marketingMultiplier = 1 + (newUpgrades.marketing ?? 0) * 0.1;
+      const pomodoroMultiplier = 1 + (newUpgrades.pomodoro ?? 0) * 0.5;
 
-    setBobaPerClick(1 * upgrades.tapioca * marketingMultiplier);
-    setPassiveBobaRate(1 * upgrades.staff * 0.5 * marketingMultiplier);
-    setPomodoroRate(1 * upgrades.pomodoro * pomodoroMultiplier);
+      setBobaPerClick(1 * (newUpgrades.tapioca ?? 0) * marketingMultiplier);
+      setPassiveBobaRate(
+        1 * (newUpgrades.staff ?? 0) * 0.5 * marketingMultiplier
+      );
+      setPomodoroRate(newUpgrades.pomodoro * pomodoroMultiplier);
+
+      return newUpgrades;
+    });
     toast({
       title: "Upgrade purchased!",
       description: `Your boba business is growing!`,
